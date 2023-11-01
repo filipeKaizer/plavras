@@ -57,6 +57,7 @@ int main()
     jogo();
     
     tecla_fim();
+    tela_cor_normal();
     tela_fim();
   } while(quer_jogar_de_novo());
 
@@ -126,12 +127,12 @@ void desenha_tela(char palavras[][16], int posicao[], int digitacao[], int ativa
     
   // Imprime as palavras não selecionadas de acordo com o tempo de ativacao
   tela_cor_letra(0, 205, 10);
-  for (int i = 0; i<N_PAL; i++) {
+  for (int i = 0; palavras[i][0] != '\0'; i++) {
     if (ativacao[i] < tempoAtual && tempoAtual < (ativacao[i] + digitacao[i]) && i != palavraSelecionada) {
       int linha = 3 + (tela_nlin() - 3) * (tempoAtual - ativacao[i]) / digitacao[i];
       int coluna = (tela_ncol() - strlen(palavras[i])) * posicao[i] / 100;
       tela_lincol(linha, coluna);
-      printf("%s", palavras[i]);
+      printf("%s-%d", palavras[i], i);
     } 
   } 
 
@@ -253,13 +254,14 @@ int remove_letra(char v[16], char p)
 
 void remove_palavra(char palavras[][16], int posicao[], int digitacao[], int ativacao[], int palavraIndex)
 {
-  int i;
+  int i=0;
   for (i = palavraIndex; palavras[i+1][0] != '\0' && i < MAX_PAL; i++) {
     strcpy(palavras[i], palavras[i+1]);
     posicao[i] = posicao[i+1];
     digitacao[i] = digitacao[i+1];
     ativacao[i] = ativacao[i+1];
   }
+  //palavras[i+1][0] = '\0';
   palavras[i][0] = '\0';
 }
 
@@ -268,9 +270,16 @@ bool sorteia_palavras(char palavras[][16], int posicao[], int digitacao[], int a
   FILE *arquivo;
   char palavraLida[16];
   char palavrasArquivo[920][16];
+ 
+  // Limpa vetor de palavras para evitar lixos
+  for (int i = 0; i < N_PAL; i++) {
+    for (int j = 0; j < 16; j++) {
+      palavras[i][j] = '\0';
+    }
+  }
 
   arquivo = fopen("palavras", "r");
-
+  
   if (arquivo == NULL) {
     printf("Erro ao abrir o arquivo.\n");
     return false;
