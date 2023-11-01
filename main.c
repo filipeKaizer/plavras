@@ -39,7 +39,7 @@ bool quer_jogar_de_novo();
 // limpa a linha de entrada
 void espera_enter();
 // abre arquivo e sorteia palavras
-bool sorteia_palavras(char palavras[N_PAL][16], int posicao[N_PAL], int digitacao[N_PAL], int ativacao[N_PAL]);
+bool sorteia_palavras(char palavras[][16], int posicao[N_PAL], int digitacao[N_PAL], int ativacao[N_PAL]);
 // atualiza a tela do jogo com as palavras e o tempo
 void desenha_tela(char palavras[][16], int posicao[N_PAL], int digitacao[N_PAL], int ativacao[N_PAL], int palavraSelecionada, double tempoRestante);
 
@@ -72,8 +72,8 @@ void jogo()
   double tempo_inicial = tela_relogio();
   // Indice para determinar a palavra a ser digitada
   int palavraSelecionada = -1;
-  // Matriz de palavras
-  char palavras[N_PAL][16];
+  // Matriz de palavras + final '\0'
+  char palavras[N_PAL+1][16];
   // Vetor de ativações
   int ativacao[N_PAL];
   // Vetor de tempo de digitação
@@ -132,7 +132,7 @@ void desenha_tela(char palavras[][16], int posicao[], int digitacao[], int ativa
       int linha = 3 + (tela_nlin() - 3) * (tempoAtual - ativacao[i]) / digitacao[i];
       int coluna = (tela_ncol() - strlen(palavras[i])) * posicao[i] / 100;
       tela_lincol(linha, coluna);
-      printf("%s-%d", palavras[i], i);
+      printf("%s", palavras[i]);
     } 
   } 
 
@@ -261,7 +261,6 @@ void remove_palavra(char palavras[][16], int posicao[], int digitacao[], int ati
     digitacao[i] = digitacao[i+1];
     ativacao[i] = ativacao[i+1];
   }
-  //palavras[i+1][0] = '\0';
   palavras[i][0] = '\0';
 }
 
@@ -305,6 +304,8 @@ bool sorteia_palavras(char palavras[][16], int posicao[], int digitacao[], int a
         i++;
       } 
     }
+    palavras[N_PAL][0] = '\0';
+    
     fclose(arquivo);
     return true;
   }
