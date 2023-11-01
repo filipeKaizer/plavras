@@ -28,8 +28,10 @@ int seleciona_palavra(char v[][16], char letra, int ativacao[N_PAL], double temp
 bool testa_palavra(char v[]);
 // apresenta o programa
 void apresentacao();
-// encerra o programa
-void encerramento();
+// Menu final, onde é apresentado o placar de jogadores e se deseja jogar ainda
+void menu_final(bool ganhou);
+// faz moldura em unicode
+void moldura(int vermelho, int verde, int azul);
 // apresenta a situação corrente do jogo e verifica se e para parar.
 bool terminou(double timeIni, int n_palavras, char palavras[][16], int digitacao[N_PAL], int ativacao[N_PAL]);
 // executa uma partida
@@ -47,21 +49,25 @@ int main()
 {
   // inicializa o gerador de números aleatórios
   srand(time(0));
-
+  
+  tela_ini();
   apresentacao();
 
   do {    
-    tela_ini();
+
     tecla_ini();
 
+    tela_mostra_cursor(false);
+    
     jogo();
+
+    tela_mostra_cursor(true);
     
     tecla_fim();
     tela_cor_normal();
     tela_fim();
   } while(quer_jogar_de_novo());
 
-  encerramento();
 }
 
 void jogo()
@@ -155,17 +161,30 @@ void desenha_tela(char palavras[][16], int posicao[], int digitacao[], int ativa
   tela_atualiza();
 }
 
-void apresentacao()
+void apresentacao() 
 {
-  printf("Você deve digitar os números que aparecerão na tela.\n");
-  printf("A ordem não é importante.\n");
-  printf("Tecle <enter> para iniciar. ");
-  espera_enter();
-}
+  tela_limpa();
+  //DESENHA MENU
+  moldura(105, 167, 240);
+  
+  int linha = tela_nlin() / 2 - 3 / 2;
+  int coluna = tela_ncol() / 2; 
 
-void encerramento()
-{
-  printf("Até a próxima.\n");
+  tela_cor_normal();
+  tela_lincol(linha - 2, coluna - 51 / 2);
+  printf("VOCÊ DEVE DIGITAR OS NÚMEROS QUE APARECERÃO NA TELA");
+
+  tela_lincol(linha, coluna - 24 / 2);
+  printf("a ordem não é importante");
+
+  tela_lincol(linha + 2, coluna - 26 / 2);
+  printf("Tecle ");
+  tela_cor_letra(10, 180, 10);
+  printf("<enter>");
+  tela_cor_normal();
+  printf(" para iniciar");
+  tela_atualiza();
+  espera_enter();
 }
 
 bool terminou(double timeIni, int n_palavras, char palavras[][16], int digitacao[], int ativacao[]) 
@@ -181,42 +200,78 @@ bool terminou(double timeIni, int n_palavras, char palavras[][16], int digitacao
   }
   
   if (terminou) {
-    // Game over pelo tempo
-    tela_limpa();
-    
-    int linha = tela_nlin() / 2;
-    int coluna = tela_ncol() / 2 - 18 / 2;
-
-    tela_cor_letra(205, 10, 0);
-    tela_lincol(linha, coluna);
-    printf("Tempo esgotado! :(");
-
-    tela_atualiza();
+    menu_final(false);
     return true;
     
   } else if (n_palavras == 0) {
-    tela_limpa();
-    
-    int linha = tela_nlin() / 2;
-    int coluna = tela_ncol() / 2 - 11 / 2;
-
-    tela_cor_letra(10, 205, 0);
-    tela_lincol(linha, coluna);
-    printf("PARABENS!!!");
-
-    tela_atualiza();
+    menu_final(true);
     return true;
   } else {
     return false;
   }
 }
 
+void menu_final(bool venceu) 
+{
+  if (venceu) {
+    // Mensagem de ganhador
+    tela_limpa();
+    moldura(60, 240, 0); // cor verde de moldura
+
+    int coluna = tela_ncol() / 2 - strlen("VOCÊ VENCEU!!!") / 2;
+    tela_lincol(tela_nlin() / 2 / 2, coluna);
+    printf("VOCÊ VENCEU!!!");
+    
+    tela_atualiza();
+  } else {
+    // Mensagem de game over
+    tela_limpa();
+    moldura(240, 10, 0);
+
+    int coluna = tela_ncol() / 2 - strlen("GAME OVER :(") / 2;
+    tela_lincol(tela_nlin() / 2 / 2, coluna);
+    printf("GAME OVER :(");
+
+    tela_atualiza();
+  }
+}
+
+void moldura(int vermelho, int verde, int azul)
+{
+  tela_cor_letra(vermelho, verde, azul);
+  for (int linha = 0; linha < tela_nlin()+1; linha++) {
+    for (int coluna = 1; coluna < (tela_ncol()+1); coluna++) {     
+      // Linha horizontal inferior e superior
+      if (linha == 0 || linha == tela_nlin()) {
+        tela_lincol(linha, coluna);
+        printf("\u2500");
+      }
+
+      // Linhas verticais
+      if (coluna == 1 || coluna == tela_ncol()) {
+        tela_lincol(linha, coluna);
+        printf("\u2502");
+      }
+    } 
+  }
+
+  // Bordas
+  tela_lincol(0, 1);
+  printf("\u256d");
+  tela_lincol(0, tela_ncol()+1);
+  printf("\u256e");
+  tela_lincol(tela_nlin(), 1);
+  printf("\u2570");
+  tela_lincol(tela_nlin(), tela_ncol()+1);
+  printf("\u256f");
+}
+
+
 bool quer_jogar_de_novo()
 {
   // limpa a entrada
   espera_enter();
 
-  printf("Digite 's' para jogar de novo ");
   while (true) {
     char c = getchar();
     if (c == '\n') {
