@@ -29,11 +29,11 @@ bool testa_palavra(char v[]);
 // apresenta o programa
 void apresentacao();
 // Menu final, onde é apresentado o placar de jogadores e se deseja jogar ainda
-void menu_final(bool ganhou);
+void menu_final(bool ganhou, double *pontos);
 // faz moldura em unicode
 void moldura(int vermelho, int verde, int azul);
 // apresenta a situação corrente do jogo e verifica se e para parar.
-bool terminou(double timeIni, int n_palavras, char palavras[][16], int digitacao[N_PAL], int ativacao[N_PAL]);
+bool terminou(double timeIni, int n_palavras, char palavras[][16], int digitacao[N_PAL], int ativacao[N_PAL], double *ponuacao);
 // executa uma partida
 void jogo();
 // verifica a vontade do jogador
@@ -44,6 +44,10 @@ void espera_enter();
 bool sorteia_palavras(char palavras[][16], int posicao[N_PAL], int digitacao[N_PAL], int ativacao[N_PAL]);
 // atualiza a tela do jogo com as palavras e o tempo
 void desenha_tela(char palavras[][16], int posicao[N_PAL], int digitacao[N_PAL], int ativacao[N_PAL], int palavraSelecionada, double tempoRestante);
+// manipula arquivo de pontos e atualiza registros
+void pontos(bool fim, double *pontuacao, double tempoAnterior);
+// Mostra tabela de ranking
+void ranking(char nomes[][100], double pontos[3], double *pontuacao);
 
 int main()
 {
@@ -52,13 +56,12 @@ int main()
   
   tela_ini();
   apresentacao();
-
+  
   do {    
-
     tecla_ini();
 
     tela_mostra_cursor(false);
-    
+
     jogo();
 
     tela_mostra_cursor(true);
@@ -76,6 +79,8 @@ void jogo()
   int n_palavras = N_PAL;
   // inicializa tempo
   double tempo_inicial = tela_relogio();
+  // Tempo usado para o calculo de pontuação
+  double tempo_pontuacao;
   // Indice para determinar a palavra a ser digitada
   int palavraSelecionada = -1;
   // Matriz de palavras + final '\0'
@@ -86,14 +91,18 @@ void jogo()
   int digitacao[N_PAL];
   // Vetor de posição horizontal
   int posicao[N_PAL];
+  // Valor de pontuação atual
+  double pontuacao=0;
   
 
   if (!sorteia_palavras(palavras, posicao, digitacao, ativacao)) {
     return;
   }
   
+  tempo_pontuacao = tela_relogio(); // Inicializa o tempo
+  
   while (true) {
-    if (terminou(tempo_inicial, n_palavras, palavras, digitacao, ativacao)) {
+    if (terminou(tempo_inicial, n_palavras, palavras, digitacao, ativacao, &pontuacao)) {
       break;
     }
       
@@ -105,11 +114,22 @@ void jogo()
     if (palavraSelecionada == -1 && letra != '\0') {
       palavraSelecionada = seleciona_palavra(palavras, letra, ativacao, tempo_inicial);
     }
-    if (palavraSelecionada != -1 && remove_letra(palavras[palavraSelecionada], letra) == 1) {         
-      remove_palavra(palavras, posicao, ativacao, digitacao, palavraSelecionada);
-      palavraSelecionada = -1;      
-      n_palavras--; 
-    }
+    
+    if (palavraSelecionada != -1) {
+      if (remove_letra(palavras[palavraSelecionada], letra) == 1) {
+        // Atualiza o tempo, passando o endereco de pontuacao para atualizar na função jogo tambem
+        pontos(false, &pontuacao, tempo_pontuacao);
+        tempo_pontuacao = tela_relogio();
+        
+        remove_palavra(palavras, posicao, ativacao, digitacao, palavraSelecionada);
+        palavraSelecionada = -1;      
+        n_palavras--; 
+      } else {
+        if (letra >= 'A' && letra <= 'Z' || letra >= 'a' && letra <= 'z') {
+        //  pontuacao -= 10;
+        }
+      }
+    }  
   }
 }
 
@@ -187,7 +207,7 @@ void apresentacao()
   espera_enter();
 }
 
-bool terminou(double timeIni, int n_palavras, char palavras[][16], int digitacao[], int ativacao[]) 
+bool terminou(double timeIni, int n_palavras, char palavras[][16], int digitacao[], int ativacao[], double *pontuacao) 
 {
   double tempoAtual = (tela_relogio() - timeIni);
 
@@ -200,40 +220,58 @@ bool terminou(double timeIni, int n_palavras, char palavras[][16], int digitacao
   }
   
   if (terminou) {
-    menu_final(false);
+    menu_final(false, pontuacao);
     return true;
     
   } else if (n_palavras == 0) {
-    menu_final(true);
+    menu_final(true, pontuacao);
     return true;
   } else {
     return false;
   }
 }
 
-void menu_final(bool venceu) 
-{
+void menu_final(bool venceu, double *pontuacao) 
+{  
+  pontos(true, pontuacao, tela_relogio());
   if (venceu) {
     // Mensagem de ganhador
-    tela_limpa();
+    //tela_limpa();
     moldura(60, 240, 0); // cor verde de moldura
 
     int coluna = tela_ncol() / 2 - strlen("VOCÊ VENCEU!!!") / 2;
-    tela_lincol(tela_nlin() / 2 / 2, coluna);
+    tela_lincol(tela_nlin() / 4, coluna);
     printf("VOCÊ VENCEU!!!");
-    
-    tela_atualiza();
+
   } else {
     // Mensagem de game over
-    tela_limpa();
+    //tela_limpa();
     moldura(240, 10, 0);
 
     int coluna = tela_ncol() / 2 - strlen("GAME OVER :(") / 2;
     tela_lincol(tela_nlin() / 2 / 2, coluna);
     printf("GAME OVER :(");
-
-    tela_atualiza();
   }
+
+  int coluna = tela_ncol() / 2 - strlen("Digite s para parar ou n para parar") / 2;
+  tela_lincol(tela_nlin() - 2, coluna);
+  
+  tela_cor_normal();
+  printf("Digite ");
+  tela_cor_letra(10, 200, 0);
+  printf("s");
+  tela_cor_normal();
+  printf(" para parar ou ");
+  tela_cor_letra(200, 10, 0);
+  printf("n");
+  tela_cor_normal();
+  printf(" para parar");
+
+  tela_cor_normal();
+  tela_lincol(tela_nlin() - 1, tela_ncol() / 2);
+
+  
+  tela_atualiza();
 }
 
 void moldura(int vermelho, int verde, int azul)
@@ -265,7 +303,6 @@ void moldura(int vermelho, int verde, int azul)
   tela_lincol(tela_nlin(), tela_ncol()+1);
   printf("\u256f");
 }
-
 
 bool quer_jogar_de_novo()
 {
@@ -392,4 +429,91 @@ int seleciona_palavra(char v[][16], char letra, int ativacao[N_PAL], double temp
     }
   } 
   return -1; // Achou nenhuma, retorna -1
+}
+
+void pontos(bool terminou, double *pontos, double tempoAnterior) 
+{
+  double listaPontos[3];
+  if (!terminou) {
+    // Caso o jogo não seja finalizado, apenas calcula a pontuação do jogador
+    double tempoDigitacao = (tela_relogio() - tempoAnterior);
+
+    if (tempoDigitacao >= 1) {
+      *pontos += 1; 
+    } else {
+      *pontos += 100 * (1 - tempoDigitacao);
+    }
+    
+  } else {
+    
+    tela_limpa();
+    // Le os dados do arquivo
+    char texto[3][100];
+    FILE *arquivo;
+    
+    arquivo = fopen("recordes", "r");
+  
+    if (arquivo != NULL) {
+      // Lê cada valor e nome
+      int i = 0;
+      while (i < 3) {
+        fscanf(arquivo, "%s %lf\n", texto[i], &listaPontos[i]);
+        i++;
+      }
+      
+      // Atualizar um valor, se necessário
+      for (int i = 0; i < 3; i++) {
+        if (*pontos >= listaPontos[i]) {
+          listaPontos[i] = *pontos;
+
+          tela_mostra_cursor(true);
+          tela_lincol(tela_nlin() / 2 + 2, tela_ncol() / 2 - strlen("Informe o seu nome:") / 2);
+          printf("Informe o seu nome:");
+          tela_cor_normal();
+          tela_lincol(tela_nlin() / 2 + 3, tela_ncol() / 2 - strlen("Informe o seu nome:") / 2);
+          
+          tela_atualiza();
+          tecla_fim();
+          scanf("%s", texto[i]);
+          tecla_ini();
+
+          tela_mostra_cursor(false);
+          break;
+        }
+      }
+      fclose(arquivo);
+
+      // Mostra o ranking
+      tela_limpa();
+      ranking(texto, listaPontos, pontos);
+      
+      // Escreve no arquivo o novo ranking
+      fopen("recordes", "w");
+        
+      for (int i = 0; i < 3; i++) {
+        fprintf(arquivo, "%s %lf\n", texto[i], listaPontos[i]);
+      }    
+      fclose(arquivo); 
+    } 
+  }
+}
+
+void ranking(char nomes[][100], double pontos[3], double *pontuacao)
+{
+  // Mostra ranking
+  int linha = tela_nlin() / 2 - 3 / 2;
+  linha-= 2;
+  int coluna = tela_ncol() / 2;
+
+  tela_lincol(linha, coluna);
+  for (int i = 0; i < 3; i++) {
+    linha++;
+    tela_lincol(linha, coluna);
+    if (pontos[i] == *pontuacao) {
+      tela_cor_letra(180, 0, 140);
+    } else {
+      tela_cor_normal();
+    }
+    printf("%s - %.1f", nomes[i], pontos[i]);
+  }
 }
