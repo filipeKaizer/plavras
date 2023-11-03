@@ -48,6 +48,8 @@ void desenha_tela(char palavras[][16], int posicao[N_PAL], int digitacao[N_PAL],
 void pontos(bool fim, double *pontuacao, double tempoAnterior);
 // Mostra tabela de ranking
 void ranking(char nomes[][100], double pontos[3], double *pontuacao);
+// Pede nova identificação
+void novo_nome(char nome[100]);
 
 int main()
 {
@@ -63,9 +65,9 @@ int main()
     tela_mostra_cursor(false);
 
     jogo();
-
+ 
     tela_mostra_cursor(true);
-    
+
     tecla_fim();
     tela_cor_normal();
     tela_fim();
@@ -210,7 +212,7 @@ void apresentacao()
 bool terminou(double timeIni, int n_palavras, char palavras[][16], int digitacao[], int ativacao[], double *pontuacao) 
 {
   double tempoAtual = (tela_relogio() - timeIni);
-
+  
   bool terminou = false;
   for (int i = 0; i < palavras[i][0] != '\0'; i++){
     if (tempoAtual > (ativacao[i] + digitacao[i])) {
@@ -233,10 +235,11 @@ bool terminou(double timeIni, int n_palavras, char palavras[][16], int digitacao
 
 void menu_final(bool venceu, double *pontuacao) 
 {  
+  tela_limpa();
   pontos(true, pontuacao, tela_relogio());
+  
   if (venceu) {
     // Mensagem de ganhador
-    //tela_limpa();
     moldura(60, 240, 0); // cor verde de moldura
 
     int coluna = tela_ncol() / 2 - strlen("VOCÊ VENCEU!!!") / 2;
@@ -245,7 +248,6 @@ void menu_final(bool venceu, double *pontuacao)
 
   } else {
     // Mensagem de game over
-    //tela_limpa();
     moldura(240, 10, 0);
 
     int coluna = tela_ncol() / 2 - strlen("GAME OVER :(") / 2;
@@ -266,11 +268,10 @@ void menu_final(bool venceu, double *pontuacao)
   printf("n");
   tela_cor_normal();
   printf(" para parar");
-
+  
   tela_cor_normal();
   tela_lincol(tela_nlin() - 1, tela_ncol() / 2);
 
-  
   tela_atualiza();
 }
 
@@ -433,7 +434,11 @@ int seleciona_palavra(char v[][16], char letra, int ativacao[N_PAL], double temp
 
 void pontos(bool terminou, double *pontos, double tempoAnterior) 
 {
+  // Vetor para armazenar ranking
   double listaPontos[3];
+  // Vetor para armazenar nome do jogador atual, se houver nova pontuação
+  char nome_jogador[100];
+  
   if (!terminou) {
     // Caso o jogo não seja finalizado, apenas calcula a pontuação do jogador
     double tempoDigitacao = (tela_relogio() - tempoAnterior);
@@ -445,8 +450,6 @@ void pontos(bool terminou, double *pontos, double tempoAnterior)
     }
     
   } else {
-    
-    tela_limpa();
     // Le os dados do arquivo
     char texto[3][100];
     FILE *arquivo;
@@ -460,31 +463,29 @@ void pontos(bool terminou, double *pontos, double tempoAnterior)
         fscanf(arquivo, "%s %lf\n", texto[i], &listaPontos[i]);
         i++;
       }
+      fclose(arquivo);
       
-      // Atualizar um valor, se necessário
+      // Atualizar valores, se necessário
+      int posicao = -1;
       for (int i = 0; i < 3; i++) {
         if (*pontos >= listaPontos[i]) {
-          listaPontos[i] = *pontos;
-
-          tela_mostra_cursor(true);
-          tela_lincol(tela_nlin() / 2 + 2, tela_ncol() / 2 - strlen("Informe o seu nome:") / 2);
-          printf("Informe o seu nome:");
-          tela_cor_normal();
-          tela_lincol(tela_nlin() / 2 + 3, tela_ncol() / 2 - strlen("Informe o seu nome:") / 2);
-          
-          tela_atualiza();
-          tecla_fim();
-          scanf("%s", texto[i]);
-          tecla_ini();
-
-          tela_mostra_cursor(false);
+          posicao = i;
           break;
         }
+      }      
+      // desloca pontos e nomes
+      if (posicao != -1) {
+        novo_nome(nome_jogador);
+        tela_limpa();
+        for(int i = 2; i > posicao; i--) {
+          listaPontos[i] = listaPontos[i - 1];
+          strcpy(texto[i], texto[i - 1]);
+        }
+        listaPontos[posicao] = *pontos;
+        strcpy(texto[posicao], nome_jogador);
       }
-      fclose(arquivo);
-
+  
       // Mostra o ranking
-      tela_limpa();
       ranking(texto, listaPontos, pontos);
       
       // Escreve no arquivo o novo ranking
@@ -514,6 +515,27 @@ void ranking(char nomes[][100], double pontos[3], double *pontuacao)
     } else {
       tela_cor_normal();
     }
+
+    // calcula posição horizontal
+    
+        
     printf("%s - %.1f", nomes[i], pontos[i]);
   }
+}
+
+void novo_nome(char nome[100])
+{
+  tela_limpa();
+  tela_mostra_cursor(true);
+  tela_lincol(tela_nlin() / 2 + 2, tela_ncol() / 2 - strlen("Informe o seu nome:") / 2);
+  printf("Informe o seu nome:");
+  tela_cor_normal();
+  tela_lincol(tela_nlin() / 2 + 3, tela_ncol() / 2 - strlen("Informe o seu nome:") / 2);
+
+  tela_atualiza();
+  tecla_fim();
+  scanf("%s", nome);
+  tecla_ini();
+
+  tela_mostra_cursor(false);
 }
